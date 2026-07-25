@@ -33,6 +33,8 @@ public class SlayersConfig {
 
 	public boolean showMiniBossNameInAlert = false;
 
+	public boolean enableDropTracker = false;
+
 	public boolean slainTime = true;
 
 	public boolean enableHud = true;

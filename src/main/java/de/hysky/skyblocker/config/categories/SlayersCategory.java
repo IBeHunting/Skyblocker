@@ -7,6 +7,7 @@ import de.hysky.skyblocker.config.SkyblockerConfig;
 import de.hysky.skyblocker.config.configs.SlayersConfig;
 import de.hysky.skyblocker.skyblock.slayers.SlayerHudWidget;
 import de.hysky.skyblocker.skyblock.tabhud.config.WidgetsConfigurationScreen;
+import de.hysky.skyblocker.skyblock.trackers.DropTrackerWidget;
 import de.hysky.skyblocker.utils.Location;
 import de.hysky.skyblocker.utils.chat.ChatFilterResult;
 import net.azureaaron.dandelion.api.ButtonOption;
@@ -68,6 +69,18 @@ public class SlayersCategory {
 						.name(Component.translatable("skyblocker.config.slayer.slayerHud"))
 						.prompt(Component.translatable("text.skyblocker.open"))
 						.action(screen -> Minecraft.getInstance().gui.setScreen(new WidgetsConfigurationScreen(Location.HUB, SlayerHudWidget.getInstance().getInternalID(), screen)))
+						.build())
+				.option(Option.<Boolean>createBuilder()
+						.name(Component.translatable("skyblocker.config.slayer.enableDropTracker"))
+						.binding(defaults.slayers.enableDropTracker,
+								() -> config.slayers.enableDropTracker,
+								newValue -> config.slayers.enableDropTracker = newValue)
+						.controller(ConfigUtils.createBooleanController())
+						.build())
+				.option(ButtonOption.createBuilder()
+						.name(Component.translatable("skyblocker.config.slayer.trackerHud"))
+						.prompt(Component.translatable("text.skyblocker.open"))
+						.action(screen -> Minecraft.getInstance().gui.setScreen(new WidgetsConfigurationScreen(Location.HUB, DropTrackerWidget.getInstance().getInternalID(), screen)))
 						.build())
 				.option(Option.<Boolean>createBuilder()
 						.name(Component.translatable("skyblocker.config.slayer.bossbar"))
