@@ -25,6 +25,8 @@ import java.util.Set;
 
 @RegisterWidget
 public class DropTrackerWidget extends ElementBasedWidget {
+	// TODO: Make this configurable?
+	private static final int DISPLAYED_ITEMS = 6;
 	private static final Minecraft CLIENT = Minecraft.getInstance();
 	private static final Set<Location> AVAILABLE_LOCATIONS = Set.of(Location.CRIMSON_ISLE, Location.HUB, Location.SPIDERS_DEN, Location.THE_END, Location.THE_PARK, Location.THE_RIFT);
 	private static @Nullable DropTrackerWidget instance;
@@ -82,20 +84,31 @@ public class DropTrackerWidget extends ElementBasedWidget {
 		};
 
 		double totalValue = 0;
-		for (String itemId : group.getTrackedIds()) {
-			int count = group.getDropCount(itemId);
-			if (count <= 0) continue;
-
-			FlexibleItemStack stack = ItemRepository.getItemStack(itemId);
+		double otherValue = 0;
+		int index = 0;
+		for (TrackedDropGroup.Entry entry : group.getDropList()) {
+			FlexibleItemStack stack = ItemRepository.getItemStack(entry.id());
 			if (stack == null) continue;
 
 			Component name = stack.get(DataComponents.CUSTOM_NAME);
 			if (name == null) continue;
 
-			double coinValue = group.getValue(itemId);
-			totalValue += coinValue;
-			Component left = Component.literal(count + "x ").append(name);
-			Component right = Component.literal(Formatters.SHORT_INTEGER_NUMBERS.format(coinValue) + " Coins").withStyle(ChatFormatting.GOLD);
+			totalValue += entry.value();
+
+			if (index >= DISPLAYED_ITEMS) {
+				otherValue += entry.value();
+				continue;
+			}
+			Component left = Component.literal(entry.count() + "x ").append(name);
+			Component right = Component.literal(Formatters.SHORT_INTEGER_NUMBERS.format(entry.value()) + " Coins").withStyle(ChatFormatting.GOLD);
+			Element line = new LeftRightTextElement(left, right);
+			this.addComponent(line);
+
+			index++;
+		}
+		if (otherValue > 0) {
+			Component left = Component.literal("Other Items...").withStyle(ChatFormatting.GOLD);
+			Component right = Component.literal(Formatters.SHORT_INTEGER_NUMBERS.format(otherValue) + " Coins").withStyle(ChatFormatting.GOLD);
 			Element line = new LeftRightTextElement(left, right);
 			this.addComponent(line);
 		}

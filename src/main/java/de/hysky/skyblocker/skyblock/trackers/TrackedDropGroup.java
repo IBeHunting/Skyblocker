@@ -1,6 +1,8 @@
 package de.hysky.skyblocker.skyblock.trackers;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -14,6 +16,8 @@ import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 
 public class TrackedDropGroup {
+
+	public record Entry(String id, int count, double value) { }
 
 	public static final List<String> PRESET_SPIDER = Arrays.asList(
 			"DYE_BRICK_RED",
@@ -30,7 +34,8 @@ public class TrackedDropGroup {
 			"DARKNESS_WITHIN_RUNE;1",
 			"BITE_RUNE;1",
 			"TARANTULA_SILK",
-			"TOXIC_ARROW_POISON"
+			"TOXIC_ARROW_POISON",
+			"TARANTULA_WEB"
 	);
 
 	public static final List<String> PRESET_ZOMBIE = Arrays.asList(
@@ -47,7 +52,8 @@ public class TrackedDropGroup {
 			"REVENANT_CATALYST",
 			"SHARD_REVENANT",
 			"UNDEAD_CATALYST",
-			"FOUL_FLESH"
+			"FOUL_FLESH",
+			"REVENANT_FLESH"
 	);
 
 	public static final List<String> PRESET_WOLF = Arrays.asList(
@@ -59,7 +65,8 @@ public class TrackedDropGroup {
 			"CRITICAL;6",
 			"FURBALL",
 			"SPIRIT_RUNE;1",
-			"HAMSTER_WHEEL"
+			"HAMSTER_WHEEL",
+			"WOLF_TOOTH"
 	);
 
 	public static final List<String> PRESET_ENDERMAN = Arrays.asList(
@@ -80,7 +87,8 @@ public class TrackedDropGroup {
 			"MANA_STEAL;3",
 			"NULL_ATOM",
 			"ENDERSNAKE_RUNE;1",
-			"TWILIGHT_ARROW_POISON"
+			"TWILIGHT_ARROW_POISON",
+			"NULL_SPHERE"
 	);
 
 	public static final List<String> PRESET_BLAZE = Arrays.asList(
@@ -103,7 +111,8 @@ public class TrackedDropGroup {
 			"GLOWSTONE_DUST_DISTILLATE",
 			"MAGMA_CREAM_DISTILLATE",
 			"NETHER_STALK_DISTILLATE",
-			"MAGMA_ARROW"
+			"MAGMA_ARROW",
+			"DERELICT_ASHE"
 	);
 
 	public static final List<String> PRESET_VAMPIRE = Arrays.asList(
@@ -115,7 +124,8 @@ public class TrackedDropGroup {
 			"BUBBA_BLISTER",
 			"CHOCOLATE_CHIP",
 			"SOULTWIST_RUNE;1",
-			"ENCHANTED_BOOK_BUNDLE_QUANTUM"
+			"ENCHANTED_BOOK_BUNDLE_QUANTUM",
+			"COVEN_SEAL"
 	);
 
 	private final String displayName;
@@ -148,6 +158,20 @@ public class TrackedDropGroup {
 		if (this.isTracked(id)) {
 			this.dropCounts.merge(id, amount, Integer::sum);
 		}
+	}
+
+	public List<Entry> getDropList() {
+		List<Entry> entries = new ArrayList<>();
+		for (String id : this.trackedIds) {
+			int count = this.getDropCount(id);
+			if (count <= 0) continue;
+
+			double coinValue = this.getValue(id);
+
+			entries.add(new Entry(id, count, coinValue));
+		}
+		entries.sort(Comparator.<Entry>comparingDouble(x -> x.value).reversed());
+		return entries;
 	}
 
 	public int getDropCount(String id) {

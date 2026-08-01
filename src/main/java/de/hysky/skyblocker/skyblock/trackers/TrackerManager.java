@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -17,13 +18,19 @@ import com.mojang.serialization.Codec;
 import de.hysky.skyblocker.SkyblockerMod;
 import de.hysky.skyblocker.annotations.Init;
 import de.hysky.skyblocker.events.SkyblockEvents;
+import de.hysky.skyblocker.utils.Formatters;
 import de.hysky.skyblocker.utils.SkyBlockIcons;
 import de.hysky.skyblocker.utils.Utils;
 import de.hysky.skyblocker.utils.data.ProfiledData;
+import de.hysky.skyblocker.utils.scheduler.Scheduler;
 import it.unimi.dsi.fastutil.objects.Object2ObjectArrayMap;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.HoverEvent;
+import net.minecraft.world.item.ItemStack;
 
 public class TrackerManager {
 	private static final Logger LOGGER = LoggerFactory.getLogger(TrackerManager.class);
@@ -48,6 +55,7 @@ public class TrackerManager {
 		NAME_TO_ID.put("◆ Bite Rune I", "BITE_RUNE;1");
 		NAME_TO_ID.put("Tarantula Silk", "TARANTULA_SILK");
 		NAME_TO_ID.put("Toxic Arrow Poison", "TOXIC_ARROW_POISON");
+		NAME_TO_ID.put("Tarantula Web", "TARANTULA_WEB");
 
 		// Zombie (Revenant Horror)
 		NAME_TO_ID.put("Matcha Dye", "DYE_MATCHA");
@@ -66,6 +74,7 @@ public class TrackerManager {
 		NAME_TO_ID.put("Revenant Shard", "SHARD_REVENANT");
 		NAME_TO_ID.put("Undead Catalyst", "UNDEAD_CATALYST");
 		NAME_TO_ID.put("Foul Flesh", "FOUL_FLESH");
+		NAME_TO_ID.put("Revenant Flesh", "REVENANT_FLESH");
 
 		// Wolf (Sven Packmaster)
 		NAME_TO_ID.put("Celeste Dye", "DYE_CELESTE");
@@ -77,6 +86,7 @@ public class TrackerManager {
 		NAME_TO_ID.put("Furball", "FURBALL");
 		NAME_TO_ID.put("◆ Spirit Rune I", "SPIRIT_RUNE;1");
 		NAME_TO_ID.put("Hamster Wheel", "HAMSTER_WHEEL");
+		NAME_TO_ID.put("Wolf Tooth", "WOLF_TOOTH");
 
 		// Enderman (Voidgloom Seraph)
 		NAME_TO_ID.put("Byzantium Dye", "DYE_BYZANTIUM");
@@ -97,6 +107,7 @@ public class TrackerManager {
 		NAME_TO_ID.put("Null Atom", "NULL_ATOM");
 		NAME_TO_ID.put("◆ Endersnake Rune I", "ENDERSNAKE_RUNE;1");
 		NAME_TO_ID.put("Twilight Arrow Poison", "TWILIGHT_ARROW_POISON");
+		NAME_TO_ID.put("Null Sphere", "NULL_SPHERE");
 
 		// Blaze (Inferno Demonlord)
 		NAME_TO_ID.put("Flame Dye", "DYE_FLAME");
@@ -119,6 +130,7 @@ public class TrackerManager {
 		NAME_TO_ID.put("Magma Cream Distillate", "MAGMA_CREAM_DISTILLATE");
 		NAME_TO_ID.put("Nether Wart Distillate", "NETHER_STALK_DISTILLATE");
 		NAME_TO_ID.put("Magma Arrow", "MAGMA_ARROW");
+		NAME_TO_ID.put("Derelict Ashe", "DERELICT_ASHE");
 
 		// Vampire (Riftstalker Bloodfiend)
 		NAME_TO_ID.put("Sangria Dye", "DYE_SANGRIA");
@@ -133,7 +145,20 @@ public class TrackerManager {
 		// Mapped to the more common Quantum bundle for now; revisit if the drop chat message's color can be read
 		// (message.getString() currently discards it) to disambiguate The One bundle instead.
 		NAME_TO_ID.put("Enchanted Book Bundle", "ENCHANTED_BOOK_BUNDLE_QUANTUM");
+		NAME_TO_ID.put("Coven Seal", "COVEN_SEAL");
 	}
+
+	// The one guaranteed "standard" drop per slayer boss that never produces a chat message on pickup;
+	// these instead go straight into the player's inventory or sack and must be detected there.
+	private static final Set<String> STANDARD_DROP_IDS = Set.of(
+			"TARANTULA_WEB", "REVENANT_FLESH", "WOLF_TOOTH", "NULL_SPHERE", "DERELICT_ASHE", "COVEN_SEAL"
+	);
+
+	private static final String SACKS_MESSAGE_START = "[Sacks]";
+	private static final Pattern SACK_CHANGE_PATTERN = Pattern.compile("([+-])([\\d,]+) (.+) \\((.+)\\)");
+
+	private static final int LOBBY_CHANGE_DELAY = 60;
+	private static volatile boolean changingLobby;
 
 	public static final TrackedDropGroup zombieDrops = new TrackedDropGroup("Revenant", TrackedDropGroup.PRESET_ZOMBIE);
 	public static final TrackedDropGroup spiderDrops = new TrackedDropGroup("Tarantula", TrackedDropGroup.PRESET_SPIDER);
@@ -160,6 +185,10 @@ public class TrackerManager {
 	@Init
 	public static void init() {
 		ClientReceiveMessageEvents.ALLOW_GAME.register(TrackerManager::onChatMessage);
+		ClientPlayConnectionEvents.JOIN.register((_, _, _) -> changingLobby = true);
+		// Make changingLobby true for a short period while the player loads into a new lobby and their items are loading,
+		// so the initial slot-update packets for their existing inventory aren't mistaken for a fresh pickup.
+		SkyblockEvents.LOCATION_CHANGE.register(_ -> Scheduler.INSTANCE.schedule(() -> changingLobby = false, LOBBY_CHANGE_DELAY));
 
 		DROP_COUNTS_DATA.init();
 		SkyblockEvents.PROFILE_CHANGE.register(TrackerManager::onProfileChange);
@@ -182,7 +211,13 @@ public class TrackerManager {
 		if (overlay || !Utils.isOnSkyblock() || Minecraft.getInstance().player == null) return true;
 
 		try {
-			Matcher matcher = RARE_DROP_PATTERN.matcher(message.getString());
+			String plainText = message.getString();
+			if (ChatFormatting.stripFormatting(plainText).startsWith(SACKS_MESSAGE_START)) {
+				onSackMessage(message);
+				return true;
+			}
+
+			Matcher matcher = RARE_DROP_PATTERN.matcher(plainText);
 			if (!matcher.matches()) return true;
 
 			String itemName = matcher.group("item");
@@ -202,5 +237,62 @@ public class TrackerManager {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Standard slayer drops that get auto-collected into a sack surface only as a "[Sacks]" hover-chat line
+	 * rather than a plain drop message, so they need their own parser here.
+	 */
+	private static void onSackMessage(Component message) {
+		HoverEvent hoverEvent = message.getSiblings().getFirst().getStyle().getHoverEvent();
+		if (hoverEvent == null || hoverEvent.action() != HoverEvent.Action.SHOW_TEXT) return;
+		String hoverMessage = ((HoverEvent.ShowText) hoverEvent).value().getString();
+
+		Matcher matcher = SACK_CHANGE_PATTERN.matcher(ChatFormatting.stripFormatting(hoverMessage));
+		while (matcher.find()) {
+			if (!"+".equals(matcher.group(1))) continue;
+
+			String itemId = NAME_TO_ID.get(matcher.group(3));
+			if (itemId == null || !STANDARD_DROP_IDS.contains(itemId)) continue;
+
+			TrackedDropGroup group = getGroupFromDrop(itemId);
+			if (group == null) continue;
+
+			int amount = Formatters.parseNumber(matcher.group(2)).intValue();
+			group.incrementDrops(itemId, amount);
+		}
+	}
+
+	/**
+	 * Standard slayer drops that land directly in the player's inventory produce no message at all, so they're
+	 * detected by diffing the slot contents on every inventory slot-update packet, mirroring
+	 * {@link de.hysky.skyblocker.skyblock.ItemPickupWidget#onItemPickup(int, ItemStack)}.
+	 */
+	public static void onItemPickup(int slot, ItemStack newStack) {
+		Minecraft client = Minecraft.getInstance();
+		if (changingLobby || client.player == null || !Utils.isOnSkyblock()) return;
+		//make sure there is not an inventory open, so shuffling items around a chest/sack menu isn't miscounted
+		if (client.gui.screen() != null) return;
+
+		//if the slot is below 9, it is a slot that we do not care about
+		//if the slot is equal to or above 45, it is not in the player's inventory
+		if (slot < 9 || slot >= 45) return;
+		//hotbar slots are at the end of the ids instead of at the start like in the inventory main stacks, so we convert to that indexing
+		if (slot >= 36) {
+			slot -= 36;
+		}
+		if (slot == 8) return; // Ignore skyblock menu/quiver slot
+
+		ItemStack oldStack = client.player.getInventory().getNonEquipmentItems().get(slot);
+		int countDiff = newStack.getCount() - oldStack.getCount();
+		if (countDiff <= 0) return;
+
+		String itemId = newStack.getNeuName();
+		if (!STANDARD_DROP_IDS.contains(itemId)) return;
+
+		TrackedDropGroup group = getGroupFromDrop(itemId);
+		if (group == null) return;
+
+		group.incrementDrops(itemId, countDiff);
 	}
 }
