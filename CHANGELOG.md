@@ -1,3 +1,123 @@
+# Release 6.8.2
+
+## Highlight
+* Storage Overlay changes
+  * Add darkening effect to slots that do not match the search text
+  * Add an option to reopen the previous backpack when running /storage
+  * Add a small highlight to hovered backpacks/ender chests
+  * Fix search not indexing item tooltips
+  * Fix some things overlapping with the search bar
+  * Fix being able to interact with slots through the search bar
+* Fix Kuudra Profit Calculation for enchantments
+* Fix Hunting Box Helper
+* Fix SkyBlock Item List exclusion zones not working sometimes
+* Fix new waypoints not respecting group options
+* Fix Fancy Bars config not mentioning the new Vitality bar
+
+## What's Changed
+* fix new waypoints not respecting group options by @viciscat in https://github.com/SkyblockerMod/Skyblocker/pull/2597
+* Remove Config Check For SkyBlock Item List Exclusion Zones by @Alex33856 in https://github.com/SkyblockerMod/Skyblocker/pull/2599
+* some more storage overlay things by @viciscat in https://github.com/SkyblockerMod/Skyblocker/pull/2598
+* fix weird clicky behavior in the screen of the overlay of the storage by @viciscat in https://github.com/SkyblockerMod/Skyblocker/pull/2610
+
+
+**Full Changelog**: https://github.com/SkyblockerMod/Skyblocker/compare/v6.8.1+26.2...v6.8.2+26.2
+
+___
+
+# Release 6.8.1
+
+## Highlight
+* Storage Overlay changes
+  * Add an option to set the maximum number of backpacks per row (default is 3)
+  * Change the cursor position to not reset when switching backpacks
+* Add a config for whether to show the estimated tilde on Fancy Bars
+* Fix Vitality bar not showing in dungeons
+* Fix Item Price Lookup opening the Search overlay
+* Fix Visitor's Logbook Wiki Lookup
+
+## What's Changed
+* Pack storage overlay horizontally by @kevinthegreat1 in https://github.com/SkyblockerMod/Skyblocker/pull/2589
+* Add max storages per row by @kevinthegreat1 in https://github.com/SkyblockerMod/Skyblocker/pull/2591
+* Fix Item Price Lookup Opening Search Overlay by @Alex33856 in https://github.com/SkyblockerMod/Skyblocker/pull/2593
+* vitality fixes and tilde option by @viciscat in https://github.com/SkyblockerMod/Skyblocker/pull/2592
+* no reset cursor in storage overlay by @viciscat in https://github.com/SkyblockerMod/Skyblocker/pull/2594
+
+
+**Full Changelog**: https://github.com/SkyblockerMod/Skyblocker/compare/v6.8.0+26.2...v6.8.1+26.2
+
+___
+
+# Release 6.8.0
+
+## Highlight
+* Add Vitality Fancy Bar
+  * Also adds a reset button and an improved colour picker.
+* Add Storage Overlay
+* Add Item Model Selector
+  * In `/skyblocker custom` you can now easily select an item model with the new "Select Model" button.
+  * Supports item models from Vanilla, Hypixel SkyBlock resource pack, and other packs you have enabled.
+* Add flow direction config for Fancy Bars
+* Add equation display to the result of `/skyblocker calculate`
+* Add support to protect items in the Loadouts, Wardrobe, and Pet menus
+* Add legacy colours option to Item Rarity Backgrounds
+* Add autocomplete to `/ahs` and `/bz`
+* Remove support for the Official SkyBlock Wiki for Wiki Lookup
+* Update enchantment abbreviations for the Vitality enchantmnetsv
+* Improve Sweep Overlay to use the official Sweep formula
+* Improve duplicate shortcut handling
+* Improve the descriptions of a few config options
+* Improve NEU Repo loading to use shallow fetches
+* Fix Crystal Hollows WebSocket waypoints
+* Fix Croesus Helper
+* Fix Croesus Profit crash
+* Fix Hunting Box Price Tooltips
+* Fix Attribute Level Helper
+* Fix Bazaar tooltips in the Attribute Menu
+* Fix detecting equipment from the `/stats` menu
+* Fix equipment preview not being cleared when unselecting an equipment set
+* Fix Community Shop (Elizabeth) Slot Text
+* Fix Essence Shop Price tooltips being unaligned
+* Fix not detecting chat waypoints with decimals
+* Fix enchanted books in the Search Overlay
+* Fix Moonglade Beacon Solver ignoring middle clicks
+* Fix Bazaar Quick Quantities ignoring numbers with commas
+* Fix some concurrency bugs
+* Fix Cult of the Fallen Star event missing an icon
+
+## What's Changed
+* Fix Bazaar Quick Quantities Ignoring Clipboard Numbers With Commas by @Alex33856 in https://github.com/SkyblockerMod/Skyblocker/pull/2548
+* use chars instead of strings in SkyBlockIcons by @viciscat in https://github.com/SkyblockerMod/Skyblocker/pull/2552
+* Add item protection for Equipment & Stats, Equipment Sets, Armor Sets, Loadouts, and Pets screens by @legentpc in https://github.com/SkyblockerMod/Skyblocker/pull/2547
+* Add flow direction config for fancy bars by @Piggered in https://github.com/SkyblockerMod/Skyblocker/pull/2447
+* Add Item Model Selector by @AzureAaron in https://github.com/SkyblockerMod/Skyblocker/pull/2566
+* Fix moonglade beacon solver ignoring middle clicks by @LJNeon in https://github.com/SkyblockerMod/Skyblocker/pull/2561
+* Clear Equipment When It Is Unequipped by @Alex33856 in https://github.com/SkyblockerMod/Skyblocker/pull/2568
+* Storage Overlay by @olim88 in https://github.com/SkyblockerMod/Skyblocker/pull/2504
+* Fix community shop slot text by @LJNeon in https://github.com/SkyblockerMod/Skyblocker/pull/2564
+* Fix chat waypoints with decimals by @LJNeon in https://github.com/SkyblockerMod/Skyblocker/pull/2565
+* Better Shortcut Duplicate Handling by @Alex33856 in https://github.com/SkyblockerMod/Skyblocker/pull/2571
+* feat(SweepOverlay): use official sweep formula by @lunaynx in https://github.com/SkyblockerMod/Skyblocker/pull/2574
+* small status bar refactor by @viciscat in https://github.com/SkyblockerMod/Skyblocker/pull/2560
+* Add descriptions by @AC19970 in https://github.com/SkyblockerMod/Skyblocker/pull/2206
+* Clean up some concurrency usage by @kevinthegreat1 in https://github.com/SkyblockerMod/Skyblocker/pull/2575
+* Add Storage Overlay Exclusion Zones by @Alex33856 in https://github.com/SkyblockerMod/Skyblocker/pull/2578
+* Fix Stats & Equipment UI Title by @Alex33856 in https://github.com/SkyblockerMod/Skyblocker/pull/2579
+* vitality and mild defaults code refactor by @viciscat in https://github.com/SkyblockerMod/Skyblocker/pull/2580
+* legacy colors for rarity backgrounds by @viciscat in https://github.com/SkyblockerMod/Skyblocker/pull/2559
+* Update enchantment abbreviations by @Bedrock-Armor in https://github.com/SkyblockerMod/Skyblocker/pull/2584
+* Some more threading fixes by @kevinthegreat1 in https://github.com/SkyblockerMod/Skyblocker/pull/2576
+* Also do shallow fetch for NEU repo by @layou233 in https://github.com/SkyblockerMod/Skyblocker/pull/1672
+* Add autocomplete to /ahs, /bzs, & /bz by @LJNeon in https://github.com/SkyblockerMod/Skyblocker/pull/2378
+* Fix Updated Enchanted Books in Search Overlay by @Alex33856 in https://github.com/SkyblockerMod/Skyblocker/pull/2586
+
+## New Contributors
+* @Piggered made their first contribution in https://github.com/SkyblockerMod/Skyblocker/pull/2447
+
+**Full Changelog**: https://github.com/SkyblockerMod/Skyblocker/compare/v6.7.0+26.2...v6.8.0+26.2
+
+___
+
 # Release 6.7.0
 
 ## Highlight

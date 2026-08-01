@@ -1,5 +1,5 @@
 {
-    "skyblocker.config.uiAndVisuals.bars": "Health, Mana, Defence, Speed & XP Bars",
+    "skyblocker.config.uiAndVisuals.bars": "Fancy Bars",
     "skyblocker.config.dungeons.croesusHelper.@Tooltip": "Grey out chests that have already been opened.",
     "skyblocker.config.dungeons.livid": "Livid Colour",
     "skyblocker.config.dungeons.livid.enableLividColorText": "Send Livid Colour in Chat",
@@ -90,7 +90,6 @@
     "skyblocker.config.dungeons.dungeonChestProfit.incompleteColor": "Incomplete Colour",
     "skyblocker.config.debug.showInvisibleArmorStands": "Show Invisible Armour Stands",
     "skyblocker.config.foraging.sweepOverlay.sweepOverlayColor": "Sweep Overlay Colour",
-    "skyblocker.config.helpers.enableWardrobeHelper.@Tooltip": "Allows changing Armour Sets and Equipment Sets by pressing the corresponding Hotbar Slot key.",
     "skyblocker.config.uiAndVisuals.chestValue.color": "Chest Value Colour",
     "skyblocker.config.uiAndVisuals.chestValue.incompleteColor": "Incomplete Colour",
     "skyblocker.config.dungeons.livid.customColor": "Custom Livid Colour",
@@ -109,5 +108,9 @@
     "skyblocker.customization.armor": "Armour",
     "skyblocker.config.slayer.highlightColor": "Boss/Miniboss Highlight Colour",
     "skyblocker.config.misc.cat.@Tooltip": "Adds a cat picture to the Hub's Community Centre.",
-    "skyblocker.config.helpers.loadouts.enableLoadoutsHelper.@Tooltip": "Allows changing Loadouts, Armour Sets, and Equipment Sets by pressing the corresponding key."
+    "skyblocker.config.helpers.loadouts.enableLoadoutsHelper.@Tooltip": "Allows changing Loadouts, Armour Sets, and Equipment Sets by pressing the corresponding key.",
+    "skyblocker.config.general.itemInfoDisplay.itemRarityBackgroundsLegacyColors": "Item Rarity Background Legacy Colours",
+    "skyblocker.config.general.itemInfoDisplay.itemRarityBackgroundsLegacyColors.@Tooltip": "Use the rarity colours from before the resource pack update.",
+    "skyblocker.config.uiAndVisuals.bars.@Tag[0]": "Health, Mana, Defence, Vitality, Speed & XP Bars",
+    "skyblocker.config.uiAndVisuals.bars.enableBars.@Tooltip": "Enables the fancy Health, Mana, Defence, Vitality, Speed, and XP Bars."
 }

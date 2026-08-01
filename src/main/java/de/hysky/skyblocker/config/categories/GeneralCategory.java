@@ -390,6 +390,15 @@ public class GeneralCategory {
 								.controller(ConfigUtils.createBooleanController())
 								.build())
 						.option(Option.<Boolean>createBuilder()
+								.name(Component.translatable("skyblocker.config.general.itemInfoDisplay.itemRarityBackgroundsLegacyColors"))
+								.description(Component.translatable("skyblocker.config.general.itemInfoDisplay.itemRarityBackgroundsLegacyColors.@Tooltip"))
+								.tags(CommonTags.ADDED_IN_6_8_0)
+								.binding(defaults.general.itemInfoDisplay.itemRarityBackgroundsLegacyColors,
+										() -> config.general.itemInfoDisplay.itemRarityBackgroundsLegacyColors,
+										newValue -> config.general.itemInfoDisplay.itemRarityBackgroundsLegacyColors = newValue)
+								.controller(ConfigUtils.createBooleanController())
+								.build())
+						.option(Option.<Boolean>createBuilder()
 								.name(Component.translatable("skyblocker.config.general.itemInfoDisplay.jacobMedalBackgrounds"))
 								.description(Component.translatable("skyblocker.config.general.itemInfoDisplay.jacobMedalBackgrounds.@Tooltip"))
 								.binding(defaults.general.itemInfoDisplay.jacobMedalBackgrounds,
