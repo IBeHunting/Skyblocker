@@ -1,23 +1,9 @@
 package de.hysky.skyblocker.skyblock.trackers;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.OptionalDouble;
-
-import de.hysky.skyblocker.skyblock.item.tooltip.info.TooltipInfoType;
-import de.hysky.skyblocker.skyblock.itemlist.ItemRepository;
-import de.hysky.skyblocker.utils.BazaarProduct;
-import de.hysky.skyblocker.utils.FlexibleItemStack;
-import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
-import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 
 public class TrackedDropGroup {
-
-	public record Entry(String id, int count, double value) { }
 
 	public static final List<String> PRESET_SPIDER = Arrays.asList(
 			"DYE_BRICK_RED",
@@ -130,99 +116,35 @@ public class TrackedDropGroup {
 
 	private final String displayName;
 	private final List<String> trackedIds;
-	private Map<String, Integer> dropCounts;
+	private TrackedGroupData trackerData;
 
 	public TrackedDropGroup(String displayName, List<String> trackedIds) {
 		this.displayName = displayName;
 		this.trackedIds = trackedIds;
-		this.dropCounts = new HashMap<>();
+		this.trackerData = new TrackedGroupData();
 	}
 
 	public boolean isTracked(String id) {
 		return trackedIds.contains(id);
 	}
 
-	public List<String> getTrackedIds() {
-		return trackedIds;
-	}
-
 	/**
 	 * Swaps in the (mutable) drop count map for the current profile, so that further increments are written
 	 * directly into the persisted data. Called by {@link TrackerManager} on profile change.
 	 */
-	public void setDropCounts(Map<String, Integer> dropCounts) {
-		this.dropCounts = dropCounts;
+	public void setDropCounts(TrackedGroupData data) {
+		this.trackerData = data;
 	}
 
-	public void incrementDrops(String id, int amount) {
-		if (this.isTracked(id)) {
-			this.dropCounts.merge(id, amount, Integer::sum);
-		}
-	}
-
-	public List<Entry> getDropList() {
-		List<Entry> entries = new ArrayList<>();
-		for (String id : this.trackedIds) {
-			int count = this.getDropCount(id);
-			if (count <= 0) continue;
-
-			double coinValue = this.getValue(id);
-
-			entries.add(new Entry(id, count, coinValue));
-		}
-		entries.sort(Comparator.<Entry>comparingDouble(x -> x.value).reversed());
-		return entries;
-	}
-
-	public int getDropCount(String id) {
-		return this.dropCounts.getOrDefault(id, 0);
-	}
-
-	public double getValue(String itemId) {
-		if (!dropCounts.containsKey(itemId)) {
-			return 0;
-		}
-
-		FlexibleItemStack stack = ItemRepository.getItemStack(itemId);
-		if (stack == null) return 0;
-
-		String skyblockApiId = stack.getSkyblockApiId();
-		OptionalDouble bazaarSellPrice = getBazaarSellPrice(skyblockApiId);
-		OptionalDouble unitPrice = bazaarSellPrice.isPresent()
-				? bazaarSellPrice
-				: cheaperOf(getLowestBin(skyblockApiId), getThreeDayAverage(skyblockApiId));
-		if (unitPrice.isEmpty()) return 0;
-
-		return unitPrice.getAsDouble() * dropCounts.get(itemId);
-	}
-
-	private static OptionalDouble getBazaarSellPrice(String skyblockApiId) {
-		Object2ObjectMap<String, BazaarProduct> bazaarPrices = TooltipInfoType.BAZAAR.getData();
-		if (bazaarPrices == null || !bazaarPrices.containsKey(skyblockApiId)) return OptionalDouble.empty();
-
-		return bazaarPrices.get(skyblockApiId).sellPrice();
-	}
-
-	private static OptionalDouble getLowestBin(String skyblockApiId) {
-		Object2DoubleMap<String> lowestBins = TooltipInfoType.LOWEST_BINS.getData();
-		if (lowestBins == null || !lowestBins.containsKey(skyblockApiId)) return OptionalDouble.empty();
-
-		return OptionalDouble.of(lowestBins.getDouble(skyblockApiId));
-	}
-
-	private static OptionalDouble getThreeDayAverage(String skyblockApiId) {
-		Object2DoubleMap<String> sevenDayAverages = TooltipInfoType.THREE_DAY_AVERAGE.getData();
-		if (sevenDayAverages == null || !sevenDayAverages.containsKey(skyblockApiId)) return OptionalDouble.empty();
-
-		return OptionalDouble.of(sevenDayAverages.getDouble(skyblockApiId));
-	}
-
-	private static OptionalDouble cheaperOf(OptionalDouble a, OptionalDouble b) {
-		if (a.isPresent() && b.isPresent()) return OptionalDouble.of(Math.min(a.getAsDouble(), b.getAsDouble()));
-		return a.isPresent() ? a : b;
+	public TrackedGroupData getTrackerData() {
+		return this.trackerData;
 	}
 
 	public String getDisplayName() {
 		return this.displayName;
+	}
+
+	public List<String> getTrackedIds() {
+		return this.trackedIds;
 	}
 }

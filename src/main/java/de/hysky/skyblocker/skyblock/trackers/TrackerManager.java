@@ -9,11 +9,15 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import de.hysky.skyblocker.skyblock.slayers.SlayerManager;
+import de.hysky.skyblocker.skyblock.slayers.SlayerType;
+import de.hysky.skyblocker.skyblock.tabhud.config.WidgetsConfigurationScreen;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 
 import de.hysky.skyblocker.SkyblockerMod;
 import de.hysky.skyblocker.annotations.Init;
@@ -171,16 +175,20 @@ public class TrackerManager {
 			zombieDrops, spiderDrops, wolfDrops, endermanDrops, blazeDrops, vampireDrops
 	);
 
-	// Mojang's map codec produces immutable maps, so xmap them into mutable HashMaps at both levels since
-	// TrackedDropGroup mutates its drop count map in place (see setDropCounts).
+	// Mojang's map codec produces immutable maps, so xmap them into mutable HashMaps since
+	// TrackedGroupData mutates its drop count map in place (see TrackedGroupData#incrementDrops).
 	private static final Codec<Map<String, Integer>> ITEM_COUNTS_CODEC =
 			Codec.unboundedMap(Codec.STRING, Codec.INT).xmap(HashMap::new, Function.identity());
-	private static final Codec<Map<String, Map<String, Integer>>> DROP_COUNTS_CODEC =
-			Codec.unboundedMap(Codec.STRING, ITEM_COUNTS_CODEC).xmap(HashMap::new, Function.identity());
+	private static final Codec<TrackedGroupData> TRACKED_GROUP_DATA_CODEC = RecordCodecBuilder.create(instance -> instance.group(
+			Codec.INT.fieldOf("bossKills").forGetter(TrackedGroupData::getBossKills),
+			ITEM_COUNTS_CODEC.fieldOf("dropCounts").forGetter(TrackedGroupData::getDropCounts)
+	).apply(instance, TrackedGroupData::new));
+	private static final Codec<Map<String, TrackedGroupData>> GROUP_DATA_CODEC =
+			Codec.unboundedMap(Codec.STRING, TRACKED_GROUP_DATA_CODEC).xmap(HashMap::new, Function.identity());
 
 	// Keyed by TrackedDropGroup#getDisplayName(); persisted per-account, per-profile like the reward trackers.
-	private static final ProfiledData<Map<String, Map<String, Integer>>> DROP_COUNTS_DATA =
-			new ProfiledData<>(SkyblockerMod.CONFIG_DIR.resolve("reward-trackers").resolve("slayer-drops.json"), DROP_COUNTS_CODEC);
+	private static final ProfiledData<Map<String, TrackedGroupData>> TRACKER_DATA =
+			new ProfiledData<>(SkyblockerMod.CONFIG_DIR.resolve("reward-trackers").resolve("slayer-drops.json"), GROUP_DATA_CODEC);
 
 	@Init
 	public static void init() {
@@ -190,15 +198,15 @@ public class TrackerManager {
 		// so the initial slot-update packets for their existing inventory aren't mistaken for a fresh pickup.
 		SkyblockEvents.LOCATION_CHANGE.register(_ -> Scheduler.INSTANCE.schedule(() -> changingLobby = false, LOBBY_CHANGE_DELAY));
 
-		DROP_COUNTS_DATA.init();
+		TRACKER_DATA.init();
 		SkyblockEvents.PROFILE_CHANGE.register(TrackerManager::onProfileChange);
 	}
 
 	private static void onProfileChange(String prevProfileId, String newProfileId) {
-		Map<String, Map<String, Integer>> allGroupsCounts = DROP_COUNTS_DATA.computeIfAbsent(HashMap::new);
-		if (allGroupsCounts == null) return;
+		Map<String, TrackedGroupData> allGroupsData = TRACKER_DATA.computeIfAbsent(HashMap::new);
+		if (allGroupsData == null) return;
 		for (TrackedDropGroup group : slayerGroups) {
-			group.setDropCounts(allGroupsCounts.computeIfAbsent(group.getDisplayName(), _ -> new HashMap<>()));
+			group.setDropCounts(allGroupsData.computeIfAbsent(group.getDisplayName(), _ -> new TrackedGroupData()));
 		}
 	}
 
@@ -212,26 +220,17 @@ public class TrackerManager {
 
 		try {
 			String plainText = message.getString();
+			Matcher matcher = RARE_DROP_PATTERN.matcher(plainText);
+
 			if (ChatFormatting.stripFormatting(plainText).startsWith(SACKS_MESSAGE_START)) {
 				onSackMessage(message);
-				return true;
 			}
-
-			Matcher matcher = RARE_DROP_PATTERN.matcher(plainText);
-			if (!matcher.matches()) return true;
-
-			String itemName = matcher.group("item");
-			String countGroup = matcher.group("count");
-			int amount = countGroup != null ? Integer.parseInt(countGroup) : 1;
-			String itemId = NAME_TO_ID.get(itemName);
-			if (itemId == null) {
-				return true;
+			else if (plainText.strip().equals("SLAYER QUEST COMPLETE!")) {
+				onSlayerCompleteMessage();
 			}
-			TrackedDropGroup group = getGroupFromDrop(itemId);
-			if (group == null) {
-				return true;
+			else if (matcher.matches()) {
+				onRareDropMessage(matcher);
 			}
-			group.incrementDrops(itemId, amount);
 		} catch (Exception e) { //In case there's a regex failure or something else bad happens
 			LOGGER.error("[Skyblocker Tracker Manager] An unexpected exception was encountered: ", e);
 		}
@@ -259,9 +258,32 @@ public class TrackerManager {
 			if (group == null) continue;
 
 			int amount = Formatters.parseNumber(matcher.group(2)).intValue();
-			group.incrementDrops(itemId, amount);
+			group.getTrackerData().incrementDrops(itemId, amount);
 		}
 	}
+
+	private static void onSlayerCompleteMessage() {
+		TrackedDropGroup group = getCurrentlyTrackedGroup();
+		if (group == null) return;
+
+		group.getTrackerData().incrementKills();
+	}
+
+	private static void onRareDropMessage(Matcher matcher) {
+		String itemName = matcher.group("item");
+		String countGroup = matcher.group("count");
+		int amount = countGroup != null ? Integer.parseInt(countGroup) : 1;
+		String itemId = NAME_TO_ID.get(itemName);
+		if (itemId == null) {
+			return;
+		}
+		TrackedDropGroup group = getGroupFromDrop(itemId);
+		if (group == null) {
+			return;
+		}
+		group.getTrackerData().incrementDrops(itemId, amount);
+	}
+
 
 	/**
 	 * Standard slayer drops that land directly in the player's inventory produce no message at all, so they're
@@ -293,6 +315,28 @@ public class TrackerManager {
 		TrackedDropGroup group = getGroupFromDrop(itemId);
 		if (group == null) return;
 
-		group.incrementDrops(itemId, countDiff);
+		group.getTrackerData().incrementDrops(itemId, countDiff);
+	}
+
+	@Nullable
+	public static TrackedDropGroup getCurrentlyTrackedGroup() {
+		SlayerType slayerType;
+		if (Minecraft.getInstance().gui.screen() instanceof WidgetsConfigurationScreen) {
+			slayerType = SlayerType.REVENANT;
+		} else {
+			SlayerManager.SlayerQuest slayerQuest = SlayerManager.getSlayerQuest();
+			if (Minecraft.getInstance().player == null || slayerQuest == null) return null;
+
+			slayerType = slayerQuest.slayerType;
+		}
+
+		return switch (slayerType) {
+			case REVENANT -> TrackerManager.zombieDrops;
+			case TARANTULA -> TrackerManager.spiderDrops;
+			case SVEN -> TrackerManager.wolfDrops;
+			case VOIDGLOOM -> TrackerManager.endermanDrops;
+			case DEMONLORD ->  TrackerManager.blazeDrops;
+			case VAMPIRE ->  TrackerManager.vampireDrops;
+		};
 	}
 }
