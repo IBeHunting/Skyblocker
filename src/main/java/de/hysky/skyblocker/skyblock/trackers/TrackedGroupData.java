@@ -83,7 +83,7 @@ public class TrackedGroupData {
 		FlexibleItemStack stack = ItemRepository.getItemStack(itemId);
 		if (stack == null) return 0;
 
-		String skyblockApiId = stack.getSkyblockApiId();
+		String skyblockApiId = stack.getStackOrEmpty().getSkyblockApiId();
 		OptionalDouble bazaarSellPrice = getBazaarSellPrice(skyblockApiId);
 		OptionalDouble lowestBin = getLowestBin(skyblockApiId);
 		OptionalDouble threeDayAverage = getThreeDayAverage(skyblockApiId);

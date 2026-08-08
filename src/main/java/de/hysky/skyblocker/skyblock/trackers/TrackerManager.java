@@ -67,6 +67,8 @@ public class TrackerManager {
 		NAME_TO_ID.put("Tarantula Web", "TARANTULA_WEB");
 		NAME_TO_ID.put("Voracious Spider Shard", "ATTRIBUTE_SHARD_ARACHNO_RESISTANCE;1");
 		NAME_TO_ID.put("Flaming Spider Shard", "ATTRIBUTE_SHARD_ARACHNO;1");
+		NAME_TO_ID.put("Primordial Shard", "ATTRIBUTE_SHARD_COCOON_CHANCE;1");
+		NAME_TO_ID.put("Paragon Shard", "ATTRIBUTE_SHARD_SLAYER_DISCOUNT;1");
 
 		// Zombie (Revenant Horror)
 		NAME_TO_ID.put("Matcha Dye", "DYE_MATCHA");
@@ -214,7 +216,6 @@ public class TrackerManager {
 
 	private static void onProfileChange(String prevProfileId, String newProfileId) {
 		Map<String, TrackedGroupData> allGroupsData = TRACKER_DATA.computeIfAbsent(HashMap::new);
-		if (allGroupsData == null) return;
 		for (TrackedDropGroup group : slayerGroups) {
 			group.setDropCounts(allGroupsData.computeIfAbsent(group.getDisplayName(), _ -> new TrackedGroupData()));
 		}
@@ -234,18 +235,18 @@ public class TrackerManager {
 		if (overlay || !Utils.isOnSkyblock() || Minecraft.getInstance().player == null) return true;
 
 		try {
-			String plainText = message.getString();
+			String plainText = ChatFormatting.stripFormatting(message.getString()).strip();
 			Matcher rareDropMatcher = RARE_DROP_PATTERN.matcher(plainText);
 			Matcher charmShardMatcher = CHARM_SHARD_PATTERN.matcher(plainText);
-			Matcher blackHoleShardMatcher = BLACK_HOLE_SHARD_PATTERN.matcher(ChatFormatting.stripFormatting(plainText));
+			Matcher blackHoleShardMatcher = BLACK_HOLE_SHARD_PATTERN.matcher(plainText);
 
-			if (ChatFormatting.stripFormatting(plainText).startsWith(SACKS_MESSAGE_START)) {
+			if (plainText.startsWith(SACKS_MESSAGE_START)) {
 				onSackMessage(message);
 			}
-			else if (plainText.strip().equals("SLAYER QUEST STARTED!")) {
+			else if (plainText.equals("SLAYER QUEST STARTED!")) {
 				onSlayerBeginMessage();
 			}
-			else if (plainText.strip().equals("SLAYER QUEST COMPLETE!")) {
+			else if (plainText.equals("SLAYER QUEST COMPLETE!")) {
 				onSlayerCompleteMessage();
 			}
 			else if (rareDropMatcher.matches()) {
