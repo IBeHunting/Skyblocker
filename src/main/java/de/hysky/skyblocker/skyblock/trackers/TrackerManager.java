@@ -190,6 +190,7 @@ public class TrackerManager {
 			Codec.unboundedMap(Codec.STRING, Codec.INT).xmap(HashMap::new, Function.identity());
 	private static final Codec<TrackedGroupData> TRACKED_GROUP_DATA_CODEC = RecordCodecBuilder.create(instance -> instance.group(
 			Codec.INT.fieldOf("bossKills").forGetter(TrackedGroupData::getBossKills),
+			Codec.INT.fieldOf("coinsSpent").forGetter(TrackedGroupData::getCoinsSpent),
 			ITEM_COUNTS_CODEC.fieldOf("dropCounts").forGetter(TrackedGroupData::getDropCounts)
 	).apply(instance, TrackedGroupData::new));
 	private static final Codec<Map<String, TrackedGroupData>> GROUP_DATA_CODEC =

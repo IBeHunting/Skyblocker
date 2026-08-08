@@ -27,8 +27,9 @@ public class TrackedGroupData {
 		this.dropCounts = new HashMap<>();
 	}
 
-	public TrackedGroupData(int bossKills, Map<String, Integer> dropCounts) {
+	public TrackedGroupData(int bossKills, int coinsSpent, Map<String, Integer> dropCounts) {
 		this.bossKills = bossKills;
+		this.coinsSpent = coinsSpent;
 		this.dropCounts = dropCounts;
 	}
 
