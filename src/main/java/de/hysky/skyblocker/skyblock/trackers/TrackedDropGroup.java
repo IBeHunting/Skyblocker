@@ -21,7 +21,9 @@ public class TrackedDropGroup {
 			"BITE_RUNE;1",
 			"TARANTULA_SILK",
 			"TOXIC_ARROW_POISON",
-			"TARANTULA_WEB"
+			"TARANTULA_WEB",
+			"ATTRIBUTE_SHARD_ARACHNO_RESISTANCE;1",
+			"ATTRIBUTE_SHARD_ARACHNO;1"
 	);
 
 	public static final List<String> PRESET_ZOMBIE = Arrays.asList(
@@ -39,7 +41,8 @@ public class TrackedDropGroup {
 			"SHARD_REVENANT",
 			"UNDEAD_CATALYST",
 			"FOUL_FLESH",
-			"REVENANT_FLESH"
+			"REVENANT_FLESH",
+			"ATTRIBUTE_SHARD_MIDAS_TOUCH;1"
 	);
 
 	public static final List<String> PRESET_WOLF = Arrays.asList(
@@ -52,7 +55,8 @@ public class TrackedDropGroup {
 			"FURBALL",
 			"SPIRIT_RUNE;1",
 			"HAMSTER_WHEEL",
-			"WOLF_TOOTH"
+			"WOLF_TOOTH",
+			"ATTRIBUTE_SHARD_COMBO;1"
 	);
 
 	public static final List<String> PRESET_ENDERMAN = Arrays.asList(
@@ -98,7 +102,8 @@ public class TrackedDropGroup {
 			"MAGMA_CREAM_DISTILLATE",
 			"NETHER_STALK_DISTILLATE",
 			"MAGMA_ARROW",
-			"DERELICT_ASHE"
+			"DERELICT_ASHE",
+			"ATTRIBUTE_SHARD_ATTACK_SPEED;1"
 	);
 
 	public static final List<String> PRESET_VAMPIRE = Arrays.asList(

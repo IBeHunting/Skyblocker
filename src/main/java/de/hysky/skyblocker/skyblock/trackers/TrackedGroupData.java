@@ -15,14 +15,15 @@ import java.util.Map;
 import java.util.OptionalDouble;
 
 public class TrackedGroupData {
-
 	public record Entry(String id, int count, double value) { }
 
 	private int bossKills;
+	private int coinsSpent;
 	private final Map<String, Integer> dropCounts;
 
 	public TrackedGroupData() {
 		this.bossKills = 0;
+		this.coinsSpent = 0;
 		this.dropCounts = new HashMap<>();
 	}
 
@@ -35,6 +36,10 @@ public class TrackedGroupData {
 		return this.bossKills;
 	}
 
+	public int getCoinsSpent() {
+		return this.coinsSpent;
+	}
+
 	public Map<String, Integer> getDropCounts() {
 		return this.dropCounts;
 	}
@@ -45,6 +50,10 @@ public class TrackedGroupData {
 
 	public void incrementKills() {
 		this.bossKills++;
+	}
+
+	public void incrementCoinsSpent(int cost) {
+		this.coinsSpent += cost;
 	}
 
 	public List<Entry> getDropList(List<String> tracked) {
@@ -75,9 +84,11 @@ public class TrackedGroupData {
 
 		String skyblockApiId = stack.getSkyblockApiId();
 		OptionalDouble bazaarSellPrice = getBazaarSellPrice(skyblockApiId);
+		OptionalDouble lowestBin = getLowestBin(skyblockApiId);
+		OptionalDouble threeDayAverage = getThreeDayAverage(skyblockApiId);
 		double unitPrice = bazaarSellPrice.isPresent()
 				? bazaarSellPrice.getAsDouble()
-				: cheaperOf(getLowestBin(skyblockApiId), getThreeDayAverage(skyblockApiId));
+				: cheaperOf(lowestBin, threeDayAverage);
 
 		return unitPrice * dropCounts.get(itemId);
 	}

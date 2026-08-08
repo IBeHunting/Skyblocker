@@ -12,6 +12,7 @@ import java.util.regex.Pattern;
 import de.hysky.skyblocker.skyblock.slayers.SlayerManager;
 import de.hysky.skyblocker.skyblock.slayers.SlayerType;
 import de.hysky.skyblocker.skyblock.tabhud.config.WidgetsConfigurationScreen;
+import de.hysky.skyblocker.utils.mayor.MayorUtils;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,6 +40,10 @@ import net.minecraft.world.item.ItemStack;
 public class TrackerManager {
 	private static final Logger LOGGER = LoggerFactory.getLogger(TrackerManager.class);
 	private static final Pattern RARE_DROP_PATTERN = Pattern.compile("^(?!.*:)(?:RARE|VERY RARE|CRAZY RARE|INSANE) DROP!\\s+\\(?(?:(?<count>\\d+)x\\s+)?(?<item>.+?)\\)?(?:\\s+\\(\\+\\d+%? " + SkyBlockIcons.MAGIC_FIND + " Magic Find\\))?$");
+	// Bestiary Attribute Shard charmed off a kill: passive hunting-level proc (CHARM), an active Salt buff (SALT), or the Naga charm passive (NAGA)
+	private static final Pattern CHARM_SHARD_PATTERN = Pattern.compile("^(?:CHARM|SALT|NAGA) You charmed an? (?<mob>.+) and captured (?<count>\\d+) Shards? from it\\.$");
+	// Bestiary Attribute Shard captured by the Black Hole hunting tool
+	private static final Pattern BLACK_HOLE_SHARD_PATTERN = Pattern.compile("^You caught x(?<count>\\d+) (?<mob>.+) Shards!$");
 
 	// TODO: extract into a shared registry; this is now shared by all slayer groups below.
 	private static final Map<String, String> NAME_TO_ID = new Object2ObjectArrayMap<>();
@@ -60,6 +65,8 @@ public class TrackerManager {
 		NAME_TO_ID.put("Tarantula Silk", "TARANTULA_SILK");
 		NAME_TO_ID.put("Toxic Arrow Poison", "TOXIC_ARROW_POISON");
 		NAME_TO_ID.put("Tarantula Web", "TARANTULA_WEB");
+		NAME_TO_ID.put("Voracious Spider Shard", "ATTRIBUTE_SHARD_ARACHNO_RESISTANCE;1");
+		NAME_TO_ID.put("Flaming Spider Shard", "ATTRIBUTE_SHARD_ARACHNO;1");
 
 		// Zombie (Revenant Horror)
 		NAME_TO_ID.put("Matcha Dye", "DYE_MATCHA");
@@ -73,12 +80,11 @@ public class TrackerManager {
 		NAME_TO_ID.put("Enchanted Book (Smite VI)", "SMITE;6");
 		NAME_TO_ID.put("◆ Pestilence Rune I", "ZOMBIE_SLAYER_RUNE;1");
 		NAME_TO_ID.put("Revenant Catalyst", "REVENANT_CATALYST");
-		// SHARD_REVENANT is absent from the bundled NEU repo data (it postdates that mirror), so ItemRepository
-		// lookups for it fall back to a placeholder icon; the chat name below is confirmed from live bazaar sources.
 		NAME_TO_ID.put("Revenant Shard", "SHARD_REVENANT");
 		NAME_TO_ID.put("Undead Catalyst", "UNDEAD_CATALYST");
 		NAME_TO_ID.put("Foul Flesh", "FOUL_FLESH");
 		NAME_TO_ID.put("Revenant Flesh", "REVENANT_FLESH");
+		NAME_TO_ID.put("Golden Ghoul Shard", "ATTRIBUTE_SHARD_MIDAS_TOUCH;1");
 
 		// Wolf (Sven Packmaster)
 		NAME_TO_ID.put("Celeste Dye", "DYE_CELESTE");
@@ -91,6 +97,7 @@ public class TrackerManager {
 		NAME_TO_ID.put("◆ Spirit Rune I", "SPIRIT_RUNE;1");
 		NAME_TO_ID.put("Hamster Wheel", "HAMSTER_WHEEL");
 		NAME_TO_ID.put("Wolf Tooth", "WOLF_TOOTH");
+		NAME_TO_ID.put("Soul of the Alpha Shard", "ATTRIBUTE_SHARD_COMBO;1");
 
 		// Enderman (Voidgloom Seraph)
 		NAME_TO_ID.put("Byzantium Dye", "DYE_BYZANTIUM");
@@ -135,6 +142,8 @@ public class TrackerManager {
 		NAME_TO_ID.put("Nether Wart Distillate", "NETHER_STALK_DISTILLATE");
 		NAME_TO_ID.put("Magma Arrow", "MAGMA_ARROW");
 		NAME_TO_ID.put("Derelict Ashe", "DERELICT_ASHE");
+		// Dropped directly from the boss itself, not via CHARM/SALT/NAGA/Black Hole
+		NAME_TO_ID.put("Inferno Demonlord Shard", "ATTRIBUTE_SHARD_ATTACK_SPEED;1");
 
 		// Vampire (Riftstalker Bloodfiend)
 		NAME_TO_ID.put("Sangria Dye", "DYE_SANGRIA");
@@ -212,6 +221,11 @@ public class TrackerManager {
 
 	@Nullable
 	private static TrackedDropGroup getGroupFromDrop(String itemId) {
+		// An item can belong to more than one group (e.g. Flaming Spider Shard is tracked by both Spider and
+		// Blaze), so prefer whichever group is currently being ground if it's one of the matches.
+		TrackedDropGroup currentGroup = getCurrentlyTrackedGroup();
+		if (currentGroup != null && currentGroup.isTracked(itemId)) return currentGroup;
+
 		return slayerGroups.stream().filter(group -> group.isTracked(itemId)).findFirst().orElse(null);
 	}
 
@@ -220,16 +234,27 @@ public class TrackerManager {
 
 		try {
 			String plainText = message.getString();
-			Matcher matcher = RARE_DROP_PATTERN.matcher(plainText);
+			Matcher rareDropMatcher = RARE_DROP_PATTERN.matcher(plainText);
+			Matcher charmShardMatcher = CHARM_SHARD_PATTERN.matcher(plainText);
+			Matcher blackHoleShardMatcher = BLACK_HOLE_SHARD_PATTERN.matcher(ChatFormatting.stripFormatting(plainText));
 
 			if (ChatFormatting.stripFormatting(plainText).startsWith(SACKS_MESSAGE_START)) {
 				onSackMessage(message);
 			}
+			else if (plainText.strip().equals("SLAYER QUEST STARTED!")) {
+				onSlayerBeginMessage();
+			}
 			else if (plainText.strip().equals("SLAYER QUEST COMPLETE!")) {
 				onSlayerCompleteMessage();
 			}
-			else if (matcher.matches()) {
-				onRareDropMessage(matcher);
+			else if (rareDropMatcher.matches()) {
+				onRareDropMessage(rareDropMatcher);
+			}
+			else if (charmShardMatcher.matches()) {
+				trackDrop(charmShardMatcher.group("mob") + " Shard", Integer.parseInt(charmShardMatcher.group("count")));
+			}
+			else if (blackHoleShardMatcher.matches()) {
+				trackDrop(blackHoleShardMatcher.group("mob") + " Shard", Integer.parseInt(blackHoleShardMatcher.group("count")));
 			}
 		} catch (Exception e) { //In case there's a regex failure or something else bad happens
 			LOGGER.error("[Skyblocker Tracker Manager] An unexpected exception was encountered: ", e);
@@ -262,6 +287,14 @@ public class TrackerManager {
 		}
 	}
 
+	private static void onSlayerBeginMessage() {
+		int cost = calculateSlayerCost();
+		TrackedDropGroup group = getCurrentlyTrackedGroup();
+		if (group != null && cost > 0) {
+			group.getTrackerData().incrementCoinsSpent(cost);
+		}
+	}
+
 	private static void onSlayerCompleteMessage() {
 		TrackedDropGroup group = getCurrentlyTrackedGroup();
 		if (group == null) return;
@@ -273,6 +306,10 @@ public class TrackerManager {
 		String itemName = matcher.group("item");
 		String countGroup = matcher.group("count");
 		int amount = countGroup != null ? Integer.parseInt(countGroup) : 1;
+		trackDrop(itemName, amount);
+	}
+
+	private static void trackDrop(String itemName, int amount) {
 		String itemId = NAME_TO_ID.get(itemName);
 		if (itemId == null) {
 			return;
@@ -282,6 +319,30 @@ public class TrackerManager {
 			return;
 		}
 		group.getTrackerData().incrementDrops(itemId, amount);
+	}
+
+	// TODO: Support motes for vampire slayer
+	private static int calculateSlayerCost() {
+		SlayerManager.SlayerQuest slayerQuest = SlayerManager.getSlayerQuest();
+
+		if (slayerQuest == null || slayerQuest.slayerType == SlayerType.VAMPIRE) return 0;
+
+		double cost = switch (slayerQuest.slayerTier) {
+			case I -> 2000;
+			case II -> 7500;
+			case III -> 20000;
+			case IV -> 50000;
+			case V -> 100000;
+		};
+		// Slayer discount when player is at level 7+
+		if (slayerQuest.level >= 7) {
+			cost *= 0.96;
+		}
+		// Slayer reduction cost from mayor Aatrox
+		if (MayorUtils.getActivePerks().contains("SLASHED Pricing")) {
+			cost *= 0.5;
+		}
+		return (int) cost;
 	}
 
 

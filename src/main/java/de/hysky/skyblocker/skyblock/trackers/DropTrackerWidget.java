@@ -100,14 +100,24 @@ public class DropTrackerWidget extends ElementBasedWidget {
 
 		this.addComponent(new SeparatorElement(null));
 
+		// Total number of bosses killed
+		left = Component.literal("Total Bosses Killed: ").withStyle(ChatFormatting.GREEN, ChatFormatting.BOLD);
+		right = Component.literal(formatNumeric(group.getTrackerData().getBossKills())).withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD);
+		this.addComponent(new LeftRightTextElement(left, right));
+
 		// Total drop value across all items
 		left = Component.literal("Total Coin Value: ").withStyle(ChatFormatting.GREEN, ChatFormatting.BOLD);
 		right = Component.literal(formatNumeric(totalValue) + " Coins").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD);
 		this.addComponent(new LeftRightTextElement(left, right));
 
-		// Total number of bosses killed
-		left = Component.literal("Total Bosses Killed: ").withStyle(ChatFormatting.GREEN, ChatFormatting.BOLD);
-		right = Component.literal(formatNumeric(group.getTrackerData().getBossKills())).withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD);
+		// Total coins spent on boss quests
+		left = Component.literal("Total Coins Spent: ").withStyle(ChatFormatting.GREEN, ChatFormatting.BOLD);
+		right = Component.literal(formatNumeric(group.getTrackerData().getCoinsSpent()) + " Coins").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD);
+		this.addComponent(new LeftRightTextElement(left, right));
+
+		// Total Profit (total value - quest costs)
+		left = Component.literal("Total Profit: ").withStyle(ChatFormatting.GREEN, ChatFormatting.BOLD);
+		right = Component.literal(formatNumeric(totalValue - group.getTrackerData().getCoinsSpent()) + " Coins").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD);
 		this.addComponent(new LeftRightTextElement(left, right));
 	}
 
